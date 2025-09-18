@@ -9,4 +9,4 @@ A central purpose of this project is to study and compare the performance of dif
 
 The results include both the optimal circle positions and a visualization of the packing configuration.
 
-This project is intended for research, educational, and demonstration purposes in the fields of optimization, computational geometry,
+This project is intended for research, educational, and demonstration purposes in the fields of optimization and computational geometry.
