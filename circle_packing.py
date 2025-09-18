@@ -1,6 +1,7 @@
 from amplpy import AMPL, Environment
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import argparse
 
 class CirclePacking():
     
@@ -13,44 +14,25 @@ class CirclePacking():
         "couenne": "/home/hojo/amplide/ampl.linux-intel64/couenne"
     }
     
-    x_min, x_max = 0.0, 10.0
-    y_min, y_max = 0.0, 10.0
 
-    solver = solver_lut["octeract"]
-    num_circles = 5
-    circle_centers = []
-    
+    def __init__(self, n=2, solver="octeract"):
+        self.x_min, self.x_max = 0.0, 10.0
+        self.y_min, self.y_max = 0.0, 10.0
+
+        self.circle_centers = []
+        self.radius = 0.0
+
+        self.num_circles = n
+        if solver in CirclePacking.solver_lut:
+            self.solver = CirclePacking.solver_lut[solver]
+        else:
+            print(f"Solver {solver} not recognized.")
+            print(f"Choose between: ipopt, baron, lgo, lindoglobal, octeract, couenne")
+
 
     def optimize(self):
-
-        ampl_code = """
-            param n integer > 0;
-            param Xmin;
-            param Xmax;
-            param Ymin;
-            param Ymax;
-
-            var x {1..n};
-            var y {1..n};
-            var r >= 0;
-
-            maximize Radius: r;
-
-            subject to InBoxX_lower {i in 1..n}:
-                Xmin + r <= x[i];
-
-            subject to InBoxX_upper {i in 1..n}:
-                x[i] <= Xmax - r;
-
-            subject to InBoxY_lower {i in 1..n}:
-                Ymin + r <= y[i];
-
-            subject to InBoxY_upper {i in 1..n}:
-                y[i] <= Ymax - r;
-
-            subject to NoOverlap {i in 1..n, j in 1..n: i < j}:
-                (x[i] - x[j])^2 + (y[i] - y[j])^2 >= (2 * r)^2;
-        """
+        with open("circle_packing.mod", "r") as file:
+            ampl_code = file.read()
 
         ampl = AMPL(Environment())
         ampl.eval(ampl_code)
@@ -90,6 +72,19 @@ class CirclePacking():
 
 if __name__ == "__main__":
 
-    circle_packing = CirclePacking()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--solver", type=str, default="octeract", help="Solver to use: ipopt, baron, lgo, lindoglobal, octeract, couenne")
+    parser.add_argument("-n", "--circles", type=int, default=3, help="Number of circles")
+    args = parser.parse_args()
+
+    solver = args.solver
+    n = args.circles
+
+    if solver not in CirclePacking.solver_lut:
+        print(f"Solver {solver} not recognized.")
+        print(f"Choose between: ipopt, baron, lgo, lindoglobal, octeract, couenne")
+        exit()
+
+    circle_packing = CirclePacking(n=n, solver=solver)
     circle_packing.optimize()
     circle_packing.plot_results()
