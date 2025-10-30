@@ -1,6 +1,6 @@
 # circle_packing.dat
 
-param n := 3;
+param n := 5;
 
 param Xmin := 0.0;
 param Xmax := 1.0;
