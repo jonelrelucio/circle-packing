@@ -2,60 +2,62 @@ from amplpy import AMPL, Environment
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import argparse
+import numpy as np
 
 class CirclePacking():
-    
+
     solver_lut = {
-        "ipopt": "/home/hojo/amplide/ampl.linux-intel64/ipopt", 
+        "ipopt": "/home/hojo/amplide/ampl.linux-intel64/ipopt",
         "baron": "/home/hojo/amplide/ampl.linux-intel64/baron",
         "lgo" : "/home/hojo/amplide/ampl.linux-intel64/lgo",
-        "lindoglobal" : "/home/hojo/amplide/ampl.linux-intel64/lindoglobal", 
+        "lindoglobal" : "/home/hojo/amplide/ampl.linux-intel64/lindoglobal",
         "octeract": "/home/hojo/amplide/ampl.linux-intel64/octeract",
         "couenne": "/home/hojo/amplide/ampl.linux-intel64/couenne",
         "knitro": "/home/hojo/amplide/ampl.linux-intel64/knitro"
     }
 
 
-    def __init__(self, n=2, solver="octeract"):
-        self.x_min, self.x_max = 0.0, 1.0
-        self.y_min, self.y_max = 0.0, 1.0
-
-        self.circle_centers = []
-        self.radius = 0.0
-
-        self.num_circles = n
+    def __init__(self, solver="octeract"):
+        self.ampl = AMPL(Environment())
         if solver in CirclePacking.solver_lut:
             self.solver = CirclePacking.solver_lut[solver]
         else:
-            print(f"Solver {solver} not recognized.")
-            print(f"Choose between: ipopt, baron, lgo, lindoglobal, octeract, couenne")
+            raise ValueError(f"Solver {solver} not recognized.")
+        self.init_ampl()
+        self.circle_centers = []
+
+    def init_ampl(self):
+        self.ampl.read("circle_packing.mod")
+        self.ampl.read_data("circle_packing.dat")
+        self.ampl.setOption('solver', self.solver)
+
+        self.num_circles = int(self.ampl.getParameter('n').value())
+        self.x_min = float(self.ampl.getParameter('Xmin').value())
+        self.x_max = float(self.ampl.getParameter('Xmax').value())
+        self.y_min = float(self.ampl.getParameter('Ymin').value())
+        self.y_max = float(self.ampl.getParameter('Ymax').value())
 
 
+    def set_initial_values(self, num_points):
+        grid_size = int(np.ceil(np.sqrt(num_points)))
+        xs = np.linspace(self.x_min, self.x_max, grid_size)
+        ys = np.linspace(self.y_min, self.y_max, grid_size)
+        grid_points = [[x, y] for x in xs for y in ys]
+        self.circle_centers = grid_points[:num_points]
+        return self.circle_centers
 
-    def optimize(self):
-
-        ampl = AMPL(Environment())
-        ampl.read("circle_packing.mod")
-        ampl.read_data("circle_packing.dat")
-        ampl.setOption('solver', circle_packing.solver)
-        ampl.solve()
-
-        self.update_params(ampl)
-
-
-    def update_params(self, ampl):
-        self.num_circles = ampl.param['n'].value()
-        self.x_min = ampl.param['Xmin'].value()
-        self.x_max = ampl.param['Xmax'].value()
-        self.y_min = ampl.param['Ymin'].value()
-        self.y_max = ampl.param['Ymax'].value()
-
+    def get_results(self):
         for i in range(1, circle_packing.num_circles + 1):
-            x = ampl.var['x'][i].value()
-            y = ampl.var['y'][i].value()
+            x = self.ampl.var['x'][i].value()
+            y = self.ampl.var['y'][i].value()
             self.circle_centers.append([x, y])
 
-        self.radius = ampl.var['r'].value()
+        self.radius = self.ampl.var['r'].value()
+
+    def optimize(self):
+        self.ampl.solve()
+        self.get_results()
+
 
     def plot_results(self):
         fig, ax = plt.subplots()
@@ -64,7 +66,7 @@ class CirclePacking():
             x, y = center
             circle = patches.Circle((x, y), self.radius, linewidth=2, edgecolor='b', facecolor='none')
             ax.scatter(x, y, linewidths=2)
-            ax.add_patch(circle)  
+            ax.add_patch(circle)
             print(f"Circle center: {x}, {y}")
         print(f"Optimal Radius: {self.radius}")
 
