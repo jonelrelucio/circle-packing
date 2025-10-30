@@ -1,0 +1,8 @@
+# circle_packing.dat
+
+param n := 3;
+
+param Xmin := 0.0;
+param Xmax := 1.0;
+param Ymin := 0.0;
+param Ymax := 1.0;
